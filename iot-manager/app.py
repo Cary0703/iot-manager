@@ -10,5 +10,5 @@ sys.path.insert(0, BASE_PATH)  # 将项目根路径临时加入环境变量，�
 
 if __name__ == '__main__':
     # host为主机ip地址，port指定访问端口号，debug=True设置调试模式打开
-    app.run(host="0.0.0.0", port=SERVER_PORT, debug=True)
+    app.run(host="114.116.2.171", port=SERVER_PORT, debug=True)
 
