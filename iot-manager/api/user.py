@@ -107,6 +107,7 @@ def upload():
     """openAPI，设备上传信息接口"""
     """数据库内status==true，用户已操作，待设备执行"""
     """数据库内status==false，用户未操作，用户可操作"""
+
     print("request:{}", request)
     uid = request.values.get("uid", "").strip()  # uid
     print("uid", uid)
