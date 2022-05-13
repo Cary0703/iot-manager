@@ -12,8 +12,8 @@ app = Flask(__name__)
 CORS(app, supports_credentials=True)  # 解决跨域问题
 app.config["JSON_AS_ASCII"] = False  # jsonify返回的中文正常显示
 
-
 """devices api"""
+
 
 @app.route("/devices", methods=["GET"])
 def get_all_devices():
@@ -23,41 +23,143 @@ def get_all_devices():
     print("获取所有设备信息 == >> {}".format(data))
     return jsonify({"code": 0, "data": data, "msg": "查询成功"})
 
+
 @app.route("/adddevice", methods=["POST"])
 def insert_device():
     """添加设备"""
     print("request:{}", request)
-    eqname = request.values.get("eqname", "").strip()  # 设备名
-    print("eqname", eqname)
-    buydate = request.values.get("buydate", "").strip()  # 购买日期
-    print("buydate", buydate)
-    rundate = request.values.get("rundate", "").strip()  # 运行日期
-    weight = request.values.get("weight", "0").strip() # 重量 默认0
-    count = request.values.get("count", "").strip() # 数量 默认1
+    uid = request.values.get("uid", "").strip()  # uid
+    print("uid", uid)
+    name = request.values.get("name", "").strip()  # name
+    print("uid", name)
+    key = request.values.get("key", "").strip()  # key
+    print("key", key)
 
-    if eqname and count:  # 注意if条件中 "" 也是空, 按False处理
-        sql1 = "SELECT count FROM device WHERE eqname = '{}'".format(eqname)
+    if uid and key:
+        key_md5 = get_md5(uid, key)  # 将key进行md5加密
+        sql1 = "SELECT name FROM device WHERE uid = '{}'".format(uid)
         res1 = db.select_db(sql1)
-
         if res1:
-            print("查询到设备 ==>> {},目前有：{}个".format(eqname, res1))
-            """更新count"""
-            new_count = int(count) + res1[0]['count']
-            sql2 = "UPDATE device SET count = '{}', buytdate = '{}', rundate = '{}' " \
-                                   "WHERE eqname = '{}'".format(new_count, buydate, rundate, eqname)
-            print(sql2)
-            db.execute_db(sql2)
-            return jsonify({"code": 0, "msg": "设备数量已更新"})
+            return jsonify({"code": 2002, "msg": "设备已存在，添加失败！！！"})
         else:
-            """添加设备"""
-            sql3 = "INSERT INTO device(eqname, buydate, rundate, weight,count) " \
-                   "VALUES('{}', '{}', '{}', '{}', '{}')".format(eqname, buydate, rundate, weight, count)
-            db.execute_db(sql3)
-            print("新增设备信息SQL ==>> {}".format(sql3))
-            return jsonify({"code": 0, "msg": "设备已添加"})
-    else:
-        return jsonify({"code": 2001, "msg": "设备名或数量不能为空"})
+            sql2 = "INSERT INTO device(uid, name, `key`) " \
+                   "VALUES('{}', '{}', '{}')".format(uid, name, key_md5)
+            db.execute_db(sql2)
+            print("新增设备信息SQL ==>> {}".format(sql2))
+            return jsonify({"code": 0, "key": key_md5, "msg": "恭喜，设备添加成功！"})  # 将加密后的key返回
 
+    else:
+        return jsonify({"code": 2001, "msg": "设备uid或key不能为空"})
+
+
+@app.route("/update_action", methods=["POST"])
+def update_device():
+    """更新设备操作接口"""
+    """数据库内status==1，用户已操作，待设备执行"""
+    """数据库内status==0，用户未操作，用户可操作"""
+    print("request:{}", request)
+    uid = request.values.get("uid", "").strip()  # uid
+    print("uid", uid)
+
+    key = request.values.get("key", "").strip()  # key 为已加密过的key
+    print("key", key)
+
+    action = request.values.get("action", "").strip()  # action 可执行操作
+    print("action", action)
+
+    status = request.values.get("status", "").strip()  # action 用户操作
+    print("status", status)
+
+    if status=='':
+        return jsonify({"code": 2002, "msg": "status不可为空"})
+    if uid and key:
+        sql1 = "SELECT * FROM device WHERE uid = '{}' and `key` = '{}' ".format(uid, key)
+        print("SQL ==>> {}".format(sql1))
+        res1 = db.select_db(sql1)
+        print(format(res1))
+        if res1:
+            sql2 = "SELECT status FROM device WHERE uid = {} and action = '{}' ".format(uid, action)
+            print("SQL ==>> {}".format(sql2))
+
+            res2 = db.select_db(sql2)
+            print(format(res2))
+            if res2:  # 该操作指令存在
+                if res2[0]["status"] == 1:  # 该行为之前已被操作
+                    return jsonify({"code": 2004, "msg": "该操作已经记录，无需重复操作"})
+                else:  # 该操作将被记录
+                    sql3 = "UPDATE device SET status = '{}'" \
+                           "WHERE uid = {}".format(status, uid)
+                    db.execute_db(sql3)
+                    return jsonify({"code": 0, "msg": "该操作记录成功，等待设备接入更新"})
+
+            else:  # 该操作不存在
+                return jsonify({"code": 2003, "msg": "该操作已不存在，请重新获取可操作指令"})
+
+        else:
+            return jsonify({"code": 2002, "msg": "设备不存在，请检查uid或key"})
+
+    else:
+        return jsonify({"code": 2001, "msg": "设备uid或key不能为空"})
+
+
+@app.route("/upload", methods=["POST"])
+def upload():
+    """openAPI，设备上传信息接口"""
+    """数据库内status==true，用户已操作，待设备执行"""
+    """数据库内status==false，用户未操作，用户可操作"""
+    print("request:{}", request)
+    uid = request.values.get("uid", "").strip()  # uid
+    print("uid", uid)
+    name = request.values.get("name", "").strip()  # name
+    print("uid", name)
+    key = request.values.get("key", "").strip()  # key 为已加密过的key
+    print("key", key)
+
+    msg = request.values.get("msg", "").strip()  # msg 设备信息
+    print("msg", msg)
+
+    action = request.values.get("action", "").strip()  # action 设备当前可执行操作
+    print("action", action)
+
+    # 判断设备是否已添加过，只有添加过的设备才能上传信息
+
+    if uid and key:
+        sql1 = "SELECT * FROM device WHERE uid = '{}' and `key` = '{}'".format(uid, key)
+        res1 = db.select_db(sql1)
+        if res1:
+            status = 0
+            sql2 = "SELECT action,status FROM device WHERE uid = '{}' and `key` = '{}'".format(uid, key)
+            res2 = db.select_db(sql2)
+            if action == res2[0]["action"]:  # 当前可操作与数据库存储可操作一样，则判断用户是否已选择操作
+                if res2[0]["status"] == 1:  # status为true，表明用户已执行操作，需要操作
+                    status = 0  # 设备执行操作，并更新库为已未操作
+                    sql3 = "UPDATE device SET msg = '{}', status = '{}' " \
+                           "WHERE uid = {}".format(msg, status, uid)
+                    db.execute_db(sql3)
+                    return jsonify({"code": 1001, "action": action, "msg": "信息已更新，需要执行操作"})
+
+                else:  # 用户未操作,只更新msg即可
+                    sql5 = "UPDATE device SET msg = '{}'" \
+                           "WHERE uid = {}".format(msg, uid)
+                    db.execute_db(sql5)
+                    return jsonify({"code": 1000, "action": "", "msg": "信息已更新，无需执行操作"})
+
+            else:  # 当前可执行操作与库里操作不一致，则更新可执行操作，默认未执行
+                status = 0
+                sql4 = "UPDATE device SET msg = '{}', action = '{}',status = '{}' " \
+                       "WHERE uid = {}".format(msg, action, status, uid)
+                db.execute_db(sql4)
+
+                return jsonify({"code": 0, "action": action, "msg": "信息已更新"})
+
+        else:
+            return jsonify({"code": 2002, "msg": "设备不存在，请检查uid或key或添加设备"})
+
+    else:
+        return jsonify({"code": 2001, "msg": "设备uid或key不能为空"})
+
+
+"""user api"""
 
 
 @app.route('/')

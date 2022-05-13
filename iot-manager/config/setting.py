@@ -1,5 +1,5 @@
 # 服务端口配置
-SERVER_PORT = 9999
+SERVER_PORT = 9990
 
 # MySQL配置
 MYSQL_HOST = "127.0.0.1"
