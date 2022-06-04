@@ -70,7 +70,7 @@ def update_device():
     status = request.values.get("status", "").strip()  # action 用户操作
     print("status", status)
 
-    if status=='':
+    if status == '':
         return jsonify({"code": 2002, "msg": "status不可为空"})
     if uid and key:
         sql1 = "SELECT * FROM device WHERE uid = '{}' and `key` = '{}' ".format(uid, key)
@@ -100,6 +100,87 @@ def update_device():
 
     else:
         return jsonify({"code": 2001, "msg": "设备uid或key不能为空"})
+
+
+"""OpenApi-校时"""
+
+
+@app.route("/getTime", methods=["GET"])
+def get_time():
+    return jsonify({"code": 0, "time": time.time()})
+
+
+"""OpenApi-校时"""
+
+
+@app.route("/ifTime", methods=["GET"])
+def if_time():
+    time_sys = time.time()
+    time_usr = request.values.get("time", "").strip()  # 设备上传自己的时间戳
+    print("999" + time_usr)
+    if time_usr:
+        if time_sys == time_usr:
+            return jsonify({"code": 0, "time": time_sys, "msg": "设备时间与系统时间一致"})
+        else:
+            return jsonify({"code": 1001, "time": time_sys, "msg": "设备时间与系统时间不一致"})
+    else:
+        return jsonify({"code": 2001, "time": time_sys, "msg": "请上传设备时间"})
+
+
+"""OpenApi-数据获取"""
+
+
+@app.route("/device", methods=["GET"])
+def get_device():
+    """获取设备信息"""
+    print("request:{}", request)
+    uid = request.values.get("uid", "").strip()  # uid
+    print("uid", uid)
+    if uid:
+        sql1 = "SELECT * FROM device WHERE uid = '{}'".format(uid)
+        res1 = db.select_db(sql1)
+        if res1:
+            return jsonify({"code": 0, "data": res1, "msg": "信息获取成功"})
+        else:
+            return jsonify({"code": 1001, "data": '', "msg": "设备uid不存在或暂无数据"})
+
+    else:
+        return jsonify({"code": 2001, "msg": "设备uid或key不能为空"})
+
+
+"""OpenApi-设备报警"""
+
+
+@app.route("/up_error", methods=["POST"])
+def up_error():
+    print("request:{}", request)
+    uid = request.values.get("uid", "").strip()  # uid
+    print("uid", uid)
+    key = request.values.get("key", "").strip()  # key 为已加密过的key
+    print("key", key)
+
+    error = request.values.get("error", "").strip()  # error 设备报警信息
+    print("error", error)
+    if error:
+        if uid and key:
+            sql1 = "SELECT * FROM device WHERE uid = '{}' and `key` = '{}'".format(uid, key)
+            res1 = db.select_db(sql1)
+            if res1:
+                sql2 = "UPDATE device SET error = '{}'  " \
+                       "WHERE uid = {}".format(error, uid)
+                print(sql2)
+                db.execute_db(sql2)
+                return jsonify({"code": 0, "msg": "报警上传成功"})
+            else:
+                return jsonify({"code": 2002, "msg": "设备不存在，请检查uid或key或添加设备"})
+
+        else:
+            return jsonify({"code": 2001, "msg": "设备uid和key不能为空"})
+    else:
+        return jsonify({"code": 2003, "msg": "报警信息不能为空"})
+
+
+"""OpenApi-上传信息（心跳）"""
 
 
 @app.route("/upload", methods=["POST"])

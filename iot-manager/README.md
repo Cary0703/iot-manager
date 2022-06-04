@@ -44,21 +44,21 @@ telephone：手机号
 
 ```
 请求方式：GET
-请求地址：http://127.0.0.1:9999/users
+请求地址：http://127.0.0.1:9990/users
 ```
 
 - 获取wintest用户接口请求示例（可直接在浏览器输入栏请求）：
 
 ```
 请求方式：GET
-请求地址：http://127.0.0.1:9999/users/wintest
+请求地址：http://127.0.0.1:9990/users/wintest
 ```
 
 - 用户注册接口请求示例：
 
 ```
 请求方式：POST
-请求地址：http://127.0.0.1:9999/register
+请求地址：http://127.0.0.1:9990/register
 请求头：
 Content-Type: application/request
 
@@ -69,7 +69,7 @@ Body：{"username": "clain", "password": "123456","role": "1", "telephone":"1350
 
 ```
 请求方式：POST
-请求地址：http://127.0.0.1:9999/login
+请求地址：http://127.0.0.1:9990/login
 请求头：
 Content-Type: application/x-www-form-urlencoded
 
@@ -80,7 +80,7 @@ Body：username=wintest&password=123456
 
 ```
 请求方式：PUT
-请求地址：http://127.0.0.1:9999/update/user/3
+请求地址：http://127.0.0.1:9990/update/user/3
 请求头：
 Content-Type: application/json
 
@@ -91,7 +91,7 @@ Body：{"admin_user": "wintest", "token": "f54f9d6ebba2c75d45ba00a8832cb593", "s
 
 ```
 请求方式：POST
-请求地址：http://127.0.0.1:9999/delete/user/test
+请求地址：http://127.0.0.1:9990/delete/user/test
 请求头：
 Content-Type: application/json
 
